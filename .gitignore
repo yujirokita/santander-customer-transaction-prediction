@@ -1,4 +1,6 @@
 memo.txt
+Pipfile
+Pipfile.lock
 *.DS_Store
 *.zip
 *.gz

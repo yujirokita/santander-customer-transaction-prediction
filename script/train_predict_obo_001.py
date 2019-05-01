@@ -21,17 +21,13 @@ NROUND = 1000
 SEED = np.random.randint(99999); np.random.seed(SEED); print(f'SEED: {SEED}')
 
 lgb_params = {
-    'bagging_freq': 5,
     'bagging_fraction': 1.0,
     'boost_from_average':'false',
     'boost': 'gbdt',
     'feature_fraction': 1.0,
-    'learning_rate': 0.005,
+    'learning_rate': 0.5,
     'max_depth': -1,
     'metric':'binary_logloss',
-    'min_data_in_leaf': 30,
-    'min_sum_hessian_in_leaf': 10.0,
-    'num_leaves': 64,
     'num_threads': cpu_count(),
     'tree_learner': 'serial',
     'objective': 'binary',
@@ -49,32 +45,30 @@ X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 5)]
 X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 5)]
 
 # train and predict
-oof = np.zeros(len(X_tr))
-pred = np.zeros(len(X_te))
+P = np.zeros_like(X_te)
 kfold = StratifiedKFold(n_splits=NFOLD, shuffle=True, random_state=SEED)
-X_tr_all = np.concatenate([X_tr_ for X_tr_ in X_tr_list], axis=1)
-X_te_all = np.concatenate([X_te_ for X_te_ in X_te_list], axis=1)    
-score = 0
 
-for fold_, (trn_idx, val_idx) in enumerate(kfold.split(X_tr, y)):
-    trn_dataset = lgb.Dataset(X_tr_all[trn_idx], label=y[trn_idx])
-    val_dataset = lgb.Dataset(X_tr_all[val_idx], label=y[val_idx])
+for c in range(200):
+    x_tr = np.stack([X_tr_[:, c] for X_tr_ in X_tr_list], axis=1)
+    x_te = np.stack([X_te_[:, c] for X_te_ in X_te_list], axis=1)    
+    score = 0
     
-    clf = lgb.train(lgb_params, trn_dataset, valid_sets=[trn_dataset, val_dataset],
-                    num_boost_round=NROUND, early_stopping_rounds=100, verbose_eval=200)
-    oof[val_idx] = clf.predict(X_tr_all[val_idx], num_iteration=clf.best_iteration)
+    for fold_, (trn_idx, val_idx) in enumerate(kfold.split(x_tr, y)):
+        trn_dataset = lgb.Dataset(x_tr[trn_idx], label=y[trn_idx])
+        val_dataset = lgb.Dataset(x_tr[val_idx], label=y[val_idx])
+        
+        clf = lgb.train(lgb_params, trn_dataset, valid_sets=[trn_dataset, val_dataset],
+                        num_boost_round=NROUND, early_stopping_rounds=100, verbose_eval=False)
+                        
+        oof = clf.predict(x_tr[val_idx], num_iteration=clf.best_iteration)
+        score_ = roc_auc_score(y[val_idx], oof)
+        score += score_ / kfold.n_splits
 
-    score_ = roc_auc_score(y[val_idx], oof[val_idx])
-    print(f'Fold {fold_}: SCORE={score_}')
-
-    score += score_ / kfold.n_splits
-    pred += clf.predict(X_te_all, num_iteration=clf.best_iteration) / kfold.n_splits
+        P[:, c] += clf.predict(x_te, num_iteration=clf.best_iteration) / kfold.n_splits
     
-
-print(f'CV_SCORE={score}')
-print('OOF_SCORE={}'.format(roc_auc_score(y, oof)))
+    print(f'Column {c}: CV_SCORE={score}')
 
 # output
 ids_test = np.load('../data/ids_test.npy')
-submission = pd.DataFrame({'ID_code': ids_test, 'target': pred})
+submission = pd.DataFrame({'ID_code': ids_test, 'target': P.mean(axis=1)})
 submission.to_csv(SUBMIT_FILE_PATH, index=False, compression='gzip')
