@@ -7,6 +7,9 @@ import lightgbm as lgb
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
+import time
+start = time.time()
+
 ####################
 # preparation
 ####################
@@ -49,8 +52,8 @@ X = np.concatenate((X_tr, X_te), axis=0)
 y = np.load('../data/y.npy')
 
 # load encoded data
-X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 6)]
-X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 6)]
+X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 7)]
+X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 7)]
 
 # train and predict
 O = np.zeros_like(X_tr)
@@ -105,3 +108,10 @@ blend_pred = np.log(P).mean(axis=1) - np.log(1-P).mean(axis=1) #mean of logit
 submission = pd.DataFrame({'ID_code': ids_test, 'target': blend_pred})
 submission_path = f'../output/{SCRIPT_NAME}_{SEED}.csv.gz'
 submission.to_csv(submission_path, index=False, compression='gzip')
+
+# record
+import datetime as dt
+now = dt.datetime.now().strftime('%Y%m%d%H%M%S')
+dulation = time.time() - start
+with open('results.csv', 'a') as f:
+    print(f'{now},{SCRIPT_NAME},{dulation},{blend_score},,', file=f)

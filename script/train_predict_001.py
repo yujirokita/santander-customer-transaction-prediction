@@ -7,6 +7,9 @@ import lightgbm as lgb
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
+import time
+start = time.time()
+
 ####################
 # preparation
 ####################
@@ -18,15 +21,18 @@ NFOLD = 5
 NUM_ROUND = 10000
 NUM_STOPPING_ROUND = 500
 METRIC = 'binary_logloss'
-LGB_PARAMS = {
+LGB_PARAMS = {    
+    'bagging_freq': 5,
     'bagging_fraction': 0.6,
     'boost_from_average':'false',
     'boost': 'gbdt',
     'feature_fraction': 1.0,
-    'learning_rate': 0.03,
-    'max_depth': 2,
-    'num_leaves': 3,
+    'learning_rate': 0.005,
+    'max_depth': -1,
     'metric': METRIC,
+    'min_data_in_leaf': 30,
+    'min_sum_hessian_in_leaf': 10.0,
+    'num_leaves': 64,
     'num_threads': cpu_count(),
     'tree_learner': 'serial',
     'objective': 'binary',
@@ -74,7 +80,8 @@ for fold_, (trn_idx, val_idx) in enumerate(kfold.split(X_tr_all, y)):
 
     print(f'Score: {score(y[val_idx], oof[val_idx])}')
 
-print(f'Total Score: {score(y, oof)}')
+score = score(y, oof)
+print(f'Total Score: {score}')
 
 # save feature importances
 np.save(f'../data/feature_importances_{SCRIPT_NAME}_{SEED}.npy', importances)
@@ -84,3 +91,10 @@ ids_test = np.load('../data/ids_test.npy', allow_pickle=True)
 submission = pd.DataFrame({'ID_code': ids_test, 'target': pred})
 submission_path = f'../output/{SCRIPT_NAME}_{SEED}.csv.gz'
 submission.to_csv(submission_path, index=False, compression='gzip')
+
+# record
+import datetime as dt
+now = dt.datetime.now().strftime('%Y%m%d%H%M%S')
+dulation = time.time() - start
+with open('results.csv', 'a') as f:
+    print(f'{now},{SCRIPT_NAME},{dulation},{score},,', file=f)
