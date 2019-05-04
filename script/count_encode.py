@@ -24,7 +24,7 @@ def count_encode(arr):
     value_counts = series_raw.value_counts().to_dict()
     return series.map(value_counts).values
 
-for i in range(2, 5):
+for i in range(2, 9):
     print(f'count-encoding: {i}')
     X_round = np.round(X, i)
     

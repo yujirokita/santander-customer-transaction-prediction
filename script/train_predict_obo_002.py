@@ -49,8 +49,8 @@ X = np.concatenate((X_tr, X_te), axis=0)
 y = np.load('../data/y.npy')
 
 # load encoded data
-X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 9)]
-X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 9)]
+X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 6)]
+X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 6)]
 
 # train and predict
 O = np.zeros_like(X_tr)
@@ -97,7 +97,7 @@ np.save(f'../data/P_{SCRIPT_NAME}_{SEED}.npy', P)
 # validate
 blend_oof = np.log(O).mean(axis=1) - np.log(1-O).mean(axis=1) #mean of logit
 blend_score = score(y, blend_oof)
-print(f'Total Score: {blend_score}')
+print(f'Score of Blend: {blend_score}')
 
 # output
 ids_test = np.load('../data/ids_test.npy', allow_pickle=True)

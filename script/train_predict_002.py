@@ -15,8 +15,8 @@ from sklearn.model_selection import StratifiedKFold
 SCRIPT_NAME = os.path.basename(__file__).split('.')[0]
 SEED = np.random.randint(99999); np.random.seed(SEED); print(f'Random-Seed: {SEED}')
 NFOLD = 5
-NUM_ROUND = 10000
-NUM_STOPPING_ROUND = 500
+NUM_ROUND = 100
+NUM_STOPPING_ROUND = 5
 METRIC = 'binary_logloss'
 LGB_PARAMS = {
     'bagging_fraction': 0.6,
@@ -49,8 +49,8 @@ X = np.concatenate((X_tr, X_te), axis=0)
 y = np.load('../data/y.npy')
 
 # load encoded data
-X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 9)]
-X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 9)]
+X_tr_list = [X_tr]+[np.load(f'../data/X_train_ce_{i}.npy') for i in range(2, 6)]
+X_te_list = [X_te]+[np.load(f'../data/X_test_ce_{i}.npy') for i in range(2, 6)]
 
 # train and predict
 kfold = StratifiedKFold(n_splits=NFOLD, shuffle=True, random_state=SEED)
